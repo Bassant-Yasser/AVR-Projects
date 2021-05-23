@@ -1,0 +1,18 @@
+/*
+ * test.c
+ *
+ *  Created on: Mar 31, 2021
+ *      Author: Ahmed Yasser
+ */
+
+
+#include "avr/io.h"
+
+int main()
+{
+	DDRC |= (1<<0);
+	DDRC |= (1<<1);
+
+	PORTC |= (1<<0);
+	PORTC |= (1<<1);
+}

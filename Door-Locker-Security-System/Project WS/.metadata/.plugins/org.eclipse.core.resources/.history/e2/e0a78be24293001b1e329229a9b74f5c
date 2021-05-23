@@ -1,0 +1,178 @@
+
+#include "timer.h"
+
+/*******************************************************************************
+ *                           Global Variables                                  *
+ *******************************************************************************/
+
+/* Global variables to hold the address of the call back function in the application */
+static volatile void (*g_Timer0callBackPtr)(void) = NULL_PTR;
+static volatile void (*g_Timer2callBackPtr)(void) = NULL_PTR;
+
+uint8 timer_Number;
+/*******************************************************************************
+ *                       Interrupt Service Routines                            *
+ *******************************************************************************/
+
+ISR(TIMER0_OVF_vect)
+{
+	if(g_Timer0callBackPtr != NULL_PTR)
+	{
+		/* Call the Call Back function in the application after the overflow is detected */
+		(*g_Timer0callBackPtr)(); /* another method to call the function using pointer to function g_callBackPtr(); */
+	}
+}
+
+ISR(TIMER0_COMP_vect)
+{
+	if(g_Timer0callBackPtr != NULL_PTR)
+	{
+		/* Call the Call Back function in the application after the compare value is detected */
+		(*g_Timer0callBackPtr)(); /* another method to call the function using pointer to function g_callBackPtr(); */
+	}
+}
+
+ISR(TIMER2_OVF_vect)
+{
+	if(g_Timer2callBackPtr != NULL_PTR)
+	{
+		/* Call the Call Back function in the application after the overflow is detected */
+		(*g_Timer2callBackPtr)(); /* another method to call the function using pointer to function g_Timer2callBackPtr(); */
+	}
+}
+
+ISR(TIMER2_COMP_vect)
+{
+	if(g_Timer2callBackPtr != NULL_PTR)
+	{
+		/* Call the Call Back function in the application after the compare value is detected */
+		(*g_Timer2callBackPtr)(); /* another method to call the function using pointer to function g_Timer2callBackPtr(); */
+	}
+}
+
+/*******************************************************************************
+ *                      Functions Definitions                                  *
+ *******************************************************************************/
+
+
+void Timer_init(const Timer_ConfigType * Config_Ptr)
+{
+	timer_Number = Config_Ptr->timer_number;
+
+
+	if(timer_Number == Timer0)
+	{
+		//non pwm mode
+		TCCR0 = (1<<FOC0);
+		if(Config_Ptr->mode == NORMAL)
+		{
+			TIMSK |= (1<<TOIE0);
+		}
+		else if(Config_Ptr->mode == COMPARE)
+		{
+			TCCR0 |= (1<<WGM01);
+			TIMSK |= (1<<OCIE0);
+		}
+
+		//adjust clock mode
+		if(Config_Ptr->clock == F_CPU_CLOCK)
+		{
+			TCCR0 |= (1<<CS00);
+		}
+		else if(Config_Ptr->clock == F_CPU_8)
+		{
+			TCCR0 |= (1<<CS01);
+		}
+		else if(Config_Ptr->clock == F_CPU_64)
+		{
+			TCCR0 |= (1<<CS00) | (1<<CS01);
+		}
+		else if(Config_Ptr->clock == F_CPU_256)
+		{
+			TCCR0 |= (1<<CS02);
+		}
+		else if(Config_Ptr->clock == F_CPU_1024)
+		{
+			TCCR0 |= (1<<CS00) | (1<<CS02);
+		}
+
+		TCNT0 = Config_Ptr->initial_value;
+		OCR0 = Config_Ptr->compare_value;
+	}
+	else if(timer_Number == Timer2)
+	{
+		TCCR2 = (1<<FOC2);
+		if(Config_Ptr->mode == NORMAL)
+		{
+			TIMSK |= (1<<TOIE2);
+		}
+		else if(Config_Ptr->mode == COMPARE)
+		{
+			TCCR2 |= (1<<WGM21);
+			TIMSK |= (1<<OCIE2);
+		}
+
+		//adjust clock mode
+		if(Config_Ptr->clock == F_CPU_CLOCK)
+		{
+			TCCR2 |= (1<<CS20);
+		}
+		else if(Config_Ptr->clock == F_CPU_8)
+		{
+			TCCR2 |= (1<<CS21);
+		}
+		else if(Config_Ptr->clock == F_CPU_32)
+		{
+			TCCR2 |= (1<<CS20) | (1<<CS21);
+		}
+		else if(Config_Ptr->clock == F_CPU_64)
+		{
+			TCCR2 |= (1<<CS22);
+		}
+		else if(Config_Ptr->clock == F_CPU_256)
+		{
+			TCCR2 |= (1<<CS21) | (1<<CS22);
+		}
+		else if(Config_Ptr->clock == F_CPU_1024)
+		{
+			TCCR2 |= (1<<CS20) | (1<<CS21) | (1<<CS22);
+		}
+
+		TCNT2 = Config_Ptr->initial_value;
+		OCR2 = Config_Ptr->compare_value;
+	}
+
+
+}
+
+/*
+ * Description: Function to set the Call Back function address.
+ */
+void Timer_setCallBack(void(*a_ptr)(void))
+{
+
+	/* Save the address of the Call back function in a global variable */
+	if(timer_Number == 0)
+	{
+		g_Timer0callBackPtr = a_ptr;
+	}
+	else if(timer_Number == 2)
+	{
+		g_Timer2callBackPtr = a_ptr;
+	}
+
+}
+
+void Timer_stop(uint8 timer_number)
+{
+	if(timer_number == Timer0)
+	{
+		TCCR0 = 0;
+	}
+	else if(timer_number == Timer2)
+	{
+		TCCR2 = 0;
+	}
+
+}
+

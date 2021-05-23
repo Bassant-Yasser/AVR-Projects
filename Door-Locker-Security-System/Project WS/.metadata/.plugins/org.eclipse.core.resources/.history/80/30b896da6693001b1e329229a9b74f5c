@@ -1,0 +1,242 @@
+
+#define F_CPU 8000000UL
+
+#include "lcd.h"
+#include "uart.h"
+#include "keypad.h"
+
+#define M1_READY 0x20
+#define M2_READY 0x10
+#define MAX_PASSWORD 5
+#define VALIDATE 0x01
+#define CHANGE_PASS 0x00
+#define OPEN_DOOR 0x10
+#define EMERGENCY 0x11
+
+void get_password(uint8 password[MAX_PASSWORD], char *Str);
+void get_2passwords(uint8 password[MAX_PASSWORD], uint8 re_password[MAX_PASSWORD]);
+uint8 sequence_1(uint8 action);
+
+uint8 g_password[MAX_PASSWORD];
+uint8 g_repassword[MAX_PASSWORD];
+uint8 g_match = FALSE;
+uint8 g_counter = 0;
+
+int main(void)
+{
+	uint8 key;
+
+	/* Create configuration structure for UART driver */
+	UART_ConfigType uart_config_Ptr = {EIGHT_BITS, DISABLED, ONE_STOP_BIT, 9600};
+
+	/* Initialize both the LCD and UART driver */
+	UART_init(&uart_config_Ptr);
+	LCD_init();
+
+
+	sequence_1(VALIDATE);
+
+    while(1)
+    {
+    	/* Display main options */
+    	LCD_clearScreen();
+    	LCD_displayString("+: Change pass");
+    	LCD_goToRowColumn(1, 0);
+    	LCD_displayString("-: Open door");
+
+    	/* Wait until user chooses an option */
+    	do
+    	{
+    		key = KeyPad_getPressedKey();
+    		_delay_ms(500);
+    	}
+    	while(key != '+' && key != '-');
+
+    	/* If user chooses to change password then gets current password first then get the new password */
+    	if(key == '+')
+    	{
+    		g_counter = 0;
+    		g_match = FALSE;
+
+    		/* Give the user 3 chances to enter current password correct */
+    		while(g_match != TRUE && g_counter != 3)
+    		{
+    			g_counter++;
+    	  		get_password(g_password, "Enter old password");
+				do
+				{
+					key = KeyPad_getPressedKey();
+					_delay_ms(500);
+				}
+				while(key != '=');
+
+				while(UART_recieveByte() != M2_READY);
+				UART_sendByte(VALIDATE);
+				for (int i = 0; i < MAX_PASSWORD; i++)
+				{
+					UART_sendByte(g_password[i]);
+					_delay_ms(50);
+				}
+
+
+				UART_sendByte(M1_READY);
+				g_match = UART_recieveByte();
+    		}
+
+    		if(g_match == TRUE)
+    		{
+    			g_match = sequence_1(CHANGE_PASS);
+    			if(g_match == TRUE)
+    			{
+    				LCD_clearScreen();
+					LCD_displayString("Password is");
+					LCD_goToRowColumn(1, 0);
+					LCD_displayString("changed");
+					_delay_ms(1500);
+    			}
+    		}
+    		if(g_match == FALSE)
+    		{
+    			LCD_clearScreen();
+	    		while(UART_recieveByte() != M2_READY);
+	    		UART_sendByte(EMERGENCY);
+    			LCD_displayString("ERROR");
+    			for(int i = 1; i <= 60; i++)
+    			{
+    				_delay_ms(1000);
+    			}
+    		}
+
+
+    	}
+    	else if (key == '-')
+    	{
+    		g_match = FALSE;
+    		g_counter = 0;
+    		while(g_match != TRUE && g_counter != 3)
+    		{
+    			g_counter++;
+        		get_password(g_password, "Enter password");
+        		while(UART_recieveByte() != M2_READY);
+        		do
+        		{
+        			key = KeyPad_getPressedKey();
+        			_delay_ms(300);
+        		}
+        		while(key != '=');
+        		UART_sendByte(OPEN_DOOR);
+
+        		for (int i = 0; i < MAX_PASSWORD; i++)
+        		{
+        			UART_sendByte(g_password[i]);
+        			_delay_ms(50);
+        		}
+
+        		UART_sendByte(M1_READY);
+        		g_match = UART_recieveByte();
+
+        		if(g_match == TRUE)
+        		{
+        			LCD_clearScreen();
+        			LCD_displayString("Door is unlocking");
+        			while(UART_recieveByte() != M2_READY);
+					LCD_clearScreen();
+					LCD_displayString("Door is locking");
+					while(UART_recieveByte() != M2_READY);
+        		}
+        		else if(g_match == FALSE && g_counter != 3)
+        		{
+        			LCD_clearScreen();
+        			LCD_displayString("Not matched");
+        			LCD_goToRowColumn(1, 0);
+        			LCD_displayString("Try again");
+        			_delay_ms(1500);
+        		}
+    		}
+    		if(g_counter == 3 && g_match == FALSE)
+    		{
+        		while(UART_recieveByte() != M2_READY);
+        		UART_sendByte(EMERGENCY);
+        		LCD_clearScreen();
+        		LCD_displayString("ERROR");
+				for(int i = 1; i <= 60; i++)
+				{
+					_delay_ms(1000);
+				}
+    		}
+
+    	}
+
+    }
+}
+
+uint8 sequence_1(uint8 a_action)
+{
+	g_counter = 0;
+	g_match = FALSE;
+	while(g_match != TRUE && g_counter != 3)
+	{
+		g_counter++;
+		get_2passwords(g_password, g_repassword);
+
+		while(UART_recieveByte() != M2_READY){} // wait until MC2 is ready
+		UART_sendByte(a_action);
+
+		for (int i = 0; i < MAX_PASSWORD; i++)
+		{
+			UART_sendByte(g_password[i]);
+			_delay_ms(50);
+		}
+
+		for (int i = 0; i < MAX_PASSWORD; i++)
+		{
+			UART_sendByte(g_repassword[i]);
+			_delay_ms(50);
+		}
+
+		UART_sendByte(M1_READY);
+
+		g_match = UART_recieveByte();
+
+	}
+	return g_match;
+}
+
+void get_2passwords(uint8 a_password[MAX_PASSWORD], uint8 a_repassword[MAX_PASSWORD])
+{
+
+	get_password(a_password, "Enter new pass");
+
+	while(KeyPad_getPressedKey() != '=');
+	get_password(a_repassword, "Re_enter pass");
+	while(KeyPad_getPressedKey() != '=');
+
+	LCD_clearScreen();
+	LCD_displayString("WAIT...");
+
+}
+
+void get_password(uint8 a_password[MAX_PASSWORD], char *Str)
+{
+	LCD_clearScreen();
+	LCD_goToRowColumn(0, 0);
+	LCD_displayString(Str);
+	LCD_goToRowColumn(1, 0);
+	LCD_displayString("*****");
+	LCD_goToRowColumn(1, 0);
+	for(int i = 0; i < MAX_PASSWORD; i++)
+	{
+		a_password[i] = KeyPad_getPressedKey();
+		if(a_password[i] >= 0 && a_password[i] <= 9)
+		{
+			LCD_intgerToString(a_password[i]);
+		}
+		else
+		{
+			i--;
+		}
+		_delay_ms(500);
+
+	}
+}
+

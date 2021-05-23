@@ -1,0 +1,33 @@
+17:18:27 **** Incremental Build of configuration Debug for project Stopwatch ****
+make all 
+Building file: ../Stopwatch.c
+Invoking: AVR Compiler
+avr-gcc -Wall -g2 -gstabs -O0 -fpack-struct -fshort-enums -ffunction-sections -fdata-sections -std=gnu99 -funsigned-char -funsigned-bitfields -mmcu=atmega16 -DF_CPU=1000000UL -MMD -MP -MF"Stopwatch.d" -MT"Stopwatch.o" -c -o "Stopwatch.o" "../Stopwatch.c"
+In file included from ../Stopwatch.c:4:
+c:/winavr-20100110/lib/gcc/../../avr/include/util/delay.h:90:3: warning: #warning "Compiler optimizations disabled; functions from <util/delay.h> won't work as designed"
+Finished building: ../Stopwatch.c
+ 
+Building target: Stopwatch.elf
+Invoking: AVR C Linker
+avr-gcc -Wl,-Map,Stopwatch.map -mmcu=atmega16 -o "Stopwatch.elf"  ./Stopwatch.o   
+Finished building target: Stopwatch.elf
+ 
+Invoking: AVR Create Extended Listing
+avr-objdump -h -S Stopwatch.elf  >"Stopwatch.lss"
+Finished building: Stopwatch.lss
+ 
+Invoking: Print Size
+avr-size --format=avr --mcu=atmega16 Stopwatch.elf
+AVR Memory Usage
+----------------
+Device: atmega16
+
+Program:    4442 bytes (27.1% Full)
+(.text + .data + .bootloader)
+
+Data:         12 bytes (1.2% Full)
+(.data + .bss + .noinit)
+
+
+Finished building: sizedummy
+ 

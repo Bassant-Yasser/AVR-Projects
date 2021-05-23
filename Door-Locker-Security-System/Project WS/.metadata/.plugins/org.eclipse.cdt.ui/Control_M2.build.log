@@ -1,0 +1,40 @@
+22:05:56 **** Incremental Build of configuration Debug for project Control_M2 ****
+make all 
+Building file: ../Control_M2.c
+Invoking: AVR Compiler
+avr-gcc -Wall -g2 -gstabs -O0 -fpack-struct -fshort-enums -ffunction-sections -fdata-sections -std=gnu99 -funsigned-char -funsigned-bitfields -mmcu=atmega16 -DF_CPU=1000000UL -MMD -MP -MF"Control_M2.d" -MT"Control_M2.o" -c -o "Control_M2.o" "../Control_M2.c"
+../Control_M2.c:11:1: warning: "F_CPU" redefined
+<command-line>: warning: this is the location of the previous definition
+In file included from ../micro_config.h:21,
+                 from ../uart.h:16,
+                 from ../Control_M2.c:13:
+c:/winavr-20100110/lib/gcc/../../avr/include/util/delay.h:90:3: warning: #warning "Compiler optimizations disabled; functions from <util/delay.h> won't work as designed"
+Finished building: ../Control_M2.c
+ 
+Building target: Control_M2.elf
+Invoking: AVR C Linker
+avr-gcc -Wl,-Map,Control_M2.map -mmcu=atmega16 -o "Control_M2.elf"  ./Control_M2.o ./external_eeprom.o ./i2c.o ./lcd.o ./timer.o ./uart.o   
+Finished building target: Control_M2.elf
+ 
+Invoking: AVR Create Extended Listing
+avr-objdump -h -S Control_M2.elf  >"Control_M2.lss"
+Finished building: Control_M2.lss
+ 
+Invoking: Print Size
+avr-size --format=avr --mcu=atmega16 Control_M2.elf
+AVR Memory Usage
+----------------
+Device: atmega16
+
+Program:   12018 bytes (73.4% Full)
+(.text + .data + .bootloader)
+
+Data:         33 bytes (3.2% Full)
+(.data + .bss + .noinit)
+
+
+Finished building: sizedummy
+ 
+
+22:05:57 Build Finished. 0 errors, 2 warnings. (took 1s.228ms)
+
